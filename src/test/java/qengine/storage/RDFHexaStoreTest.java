@@ -5,6 +5,7 @@ import fr.boreal.model.logicalElements.factory.impl.SameObjectTermFactory;
 import fr.boreal.model.logicalElements.impl.SubstitutionImpl;
 import org.apache.commons.lang3.NotImplementedException;
 import qengine.model.RDFAtom;
+import qengine.model.StarQuery;
 import qengine.storage.RDFHexaStore;
 import org.junit.jupiter.api.Test;
 
@@ -322,8 +323,145 @@ public class RDFHexaStoreTest {
 
     @Test
     public void testMatchStarQuery() {
-        throw new NotImplementedException();
+    	RDFHexaStore store = new RDFHexaStore();
+        
+        RDFAtom rdfAtom1 = new RDFAtom(SUBJECT_1, PREDICATE_1, OBJECT_1);
+        store.add(rdfAtom1);
+        
+        RDFAtom rdfAtom2 = new RDFAtom(SUBJECT_1, PREDICATE_2, OBJECT_2);
+        store.add(rdfAtom2);
+        
+        RDFAtom rdfAtom3 = new RDFAtom(SUBJECT_2, PREDICATE_1, OBJECT_1);
+        store.add(rdfAtom3);
+        
+        RDFAtom rdfAtom4 = new RDFAtom(SUBJECT_2, PREDICATE_2, OBJECT_2);
+        store.add(rdfAtom4);
+        
+        
+
+        RDFAtom queryAtom1 = new RDFAtom(VAR_X, PREDICATE_1, OBJECT_1);
+        RDFAtom queryAtom2 = new RDFAtom(VAR_X, PREDICATE_2, OBJECT_2);
+        List<RDFAtom> queryAtoms = Arrays.asList(queryAtom1, queryAtom2);
+        StarQuery starQuery = new StarQuery("Q1", queryAtoms, Collections.singleton(VAR_X));
+        
+        // Exécuter la requête
+        Iterator<Substitution> results = store.match(starQuery);
+        
+        // Collecter les résultats dans une liste
+        List<Substitution> resultList = new ArrayList<>();
+        results.forEachRemaining(resultList::add);
+        
+        // Créer les substitutions attendues
+        SubstitutionImpl expectedSubst1 = new SubstitutionImpl();
+        expectedSubst1.add(VAR_X, SUBJECT_1); 
+        
+        SubstitutionImpl expectedSubst2 = new SubstitutionImpl();
+        expectedSubst2.add(VAR_X, SUBJECT_2); 
+        
+        // Vérifier que les résultats contiennent les substitutions attendues
+        assertTrue(resultList.contains(expectedSubst1), "La substitution {?x -> subject1} est attendue.");
+        assertTrue(resultList.contains(expectedSubst2), "La substitution {?x -> subject2} est attendue.");
+        
+        assertEquals(2, resultList.size(), "Le nombre de résultats devrait être 2.");
+       
+        Literal<String> NON_EXISTENT_PERSON = SameObjectTermFactory.instance().createOrGetLiteral("NonExistentPerson");
+        RDFAtom noResultQueryAtom1 = new RDFAtom(VAR_X, PREDICATE_1, NON_EXISTENT_PERSON);
+        RDFAtom noResultQueryAtom2 = new RDFAtom(VAR_X, PREDICATE_2, OBJECT_2);
+        List<RDFAtom> noResultQueryAtoms = Arrays.asList(noResultQueryAtom1, noResultQueryAtom2);
+        StarQuery noResultQuery = new StarQuery("NoResultQuery", noResultQueryAtoms, Collections.singleton(VAR_X));
+        
+        Iterator<Substitution> noResultIterator = store.match(noResultQuery);
+        assertFalse(noResultIterator.hasNext(), "La requête sans résultats devrait retourner un itérateur vide.");
     }
 
     // Vos autres tests d'HexaStore ici
+    
+    @Test
+    public void testGetIndexSOP() {
+        RDFHexaStore store = new RDFHexaStore();
+
+      
+        store.add(new RDFAtom(SUBJECT_1, PREDICATE_1, OBJECT_1)); 
+        store.add(new RDFAtom(SUBJECT_2, PREDICATE_1, OBJECT_2)); 
+        Map<Integer, Map<Integer, Set<Integer>>> indexSOP = store.getIndexSOP();
+
+        Integer subject1Id = store.dictionary.getId(SUBJECT_1.toString());
+        Integer subject2Id = store.dictionary.getId(SUBJECT_2.toString());
+        Integer object1Id = store.dictionary.getId(OBJECT_1.toString());
+        Integer object2Id = store.dictionary.getId(OBJECT_2.toString());
+        Integer predicate1Id = store.dictionary.getId(PREDICATE_1.toString());
+
+        assertTrue(indexSOP.containsKey(subject1Id), "L'index SOP devrait contenir le sujet 1.");
+        assertTrue(indexSOP.containsKey(subject2Id), "L'index SOP devrait contenir le sujet 2.");
+
+        Map<Integer, Set<Integer>> subject1Map = indexSOP.get(subject1Id);
+        assertTrue(subject1Map.containsKey(object1Id), "L'index SOP pour subject1 devrait contenir object1.");
+        assertTrue(subject1Map.get(object1Id).contains(predicate1Id), "L'index SOP pour subject1 et object1 devrait contenir predicate1.");
+
+        Map<Integer, Set<Integer>> subject2Map = indexSOP.get(subject2Id);
+        assertTrue(subject2Map.containsKey(object2Id), "L'index SOP pour subject2 devrait contenir object2.");
+        assertTrue(subject2Map.get(object2Id).contains(predicate1Id), "L'index SOP pour subject2 et object2 devrait contenir predicate1.");
+    }
+
+    @Test
+    public void testGetIndexPSO() {
+        RDFHexaStore store = new RDFHexaStore();
+
+        store.add(new RDFAtom(SUBJECT_1, PREDICATE_1, OBJECT_1)); // (subject1, predicate1, object1)
+        store.add(new RDFAtom(SUBJECT_2, PREDICATE_2, OBJECT_2)); // (subject2, predicate2, object2)
+
+        Map<Integer, Map<Integer, Set<Integer>>> indexPSO = store.getIndexPSO();
+
+        Integer predicate1Id = store.dictionary.getId(PREDICATE_1.toString());
+        Integer predicate2Id = store.dictionary.getId(PREDICATE_2.toString());
+        Integer subject1Id = store.dictionary.getId(SUBJECT_1.toString());
+        Integer subject2Id = store.dictionary.getId(SUBJECT_2.toString());
+        Integer object1Id = store.dictionary.getId(OBJECT_1.toString());
+        Integer object2Id = store.dictionary.getId(OBJECT_2.toString());
+
+        assertTrue(indexPSO.containsKey(predicate1Id), "L'index PSO doit contenir predicate1.");
+        assertTrue(indexPSO.containsKey(predicate2Id), "L'index PSO doit contenir predicate2.");
+
+        Map<Integer, Set<Integer>> predicate1Map = indexPSO.get(predicate1Id);
+        assertTrue(predicate1Map.containsKey(subject1Id), "L'index PSO pour predicate1 doit contenir subject1.");
+        assertTrue(predicate1Map.get(subject1Id).contains(object1Id), "L'index PSO pour predicate1 et subject1 doit contenir object1.");
+
+        Map<Integer, Set<Integer>> predicate2Map = indexPSO.get(predicate2Id);
+        assertTrue(predicate2Map.containsKey(subject2Id), "L'index PSO pour predicate2 doit contenir subject2.");
+        assertTrue(predicate2Map.get(subject2Id).contains(object2Id), "L'index PSO pour predicate2 et subject2 doitt contenir object2.");
+    }
+    
+    @Test
+    public void testGetIndexOPS() {
+        RDFHexaStore store = new RDFHexaStore();
+
+        store.add(new RDFAtom(SUBJECT_1, PREDICATE_1, OBJECT_1)); 
+        store.add(new RDFAtom(SUBJECT_2, PREDICATE_2, OBJECT_1)); 
+        store.add(new RDFAtom(SUBJECT_2, PREDICATE_1, OBJECT_2)); 
+
+        Map<Integer, Map<Integer, Set<Integer>>> indexOPS = store.getIndexOPS();
+
+        Integer subject1Id = store.dictionary.getId(SUBJECT_1.toString());
+        Integer subject2Id = store.dictionary.getId(SUBJECT_2.toString());
+        Integer predicate1Id = store.dictionary.getId(PREDICATE_1.toString());
+        Integer predicate2Id = store.dictionary.getId(PREDICATE_2.toString());
+        Integer object1Id = store.dictionary.getId(OBJECT_1.toString());
+        Integer object2Id = store.dictionary.getId(OBJECT_2.toString());
+
+        assertTrue(indexOPS.containsKey(object1Id), "L'index OPS devrait contenir l'objet 1.");
+
+        Map<Integer, Set<Integer>> object1Map = indexOPS.get(object1Id);
+        assertTrue(object1Map.containsKey(predicate1Id), "L'index OPS pour object1 devrait contenir predicate1.");
+        assertTrue(object1Map.get(predicate1Id).contains(subject1Id), "L'index OPS pour (object1, predicate1) devrait contenir subject1.");
+        assertTrue(object1Map.containsKey(predicate2Id), "L'index OPS pour object1 devrait contenir predicate2.");
+        assertTrue(object1Map.get(predicate2Id).contains(subject2Id), "L'index OPS pour (object1, predicate2) devrait contenir subject2.");
+
+        assertTrue(indexOPS.containsKey(object2Id), "L'index OPS devrait contenir l'objet 2.");
+
+        Map<Integer, Set<Integer>> object2Map = indexOPS.get(object2Id);
+        assertTrue(object2Map.containsKey(predicate1Id), "L'index OPS pour object2 devrait contenir predicate1.");
+        assertTrue(object2Map.get(predicate1Id).contains(subject2Id), "L'index OPS pour (object2, predicate1) devrait contenir subject2.");
+    }
+
+
 }
