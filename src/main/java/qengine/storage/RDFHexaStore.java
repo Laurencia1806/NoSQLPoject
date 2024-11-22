@@ -82,8 +82,53 @@ public class RDFHexaStore implements RDFStorage {
 
     @Override
     public Iterator<Substitution> match(StarQuery query) {
-        throw new NotImplementedException();
+        List<RDFAtom> atoms = query.getRdfAtoms();
+        Variable centralVar = query.getCentralVariable();
+        Collection<Variable> answerVariables = query.getAnswerVariables();
+
+
+        List<Set<Term>> centralVarValueSets = new ArrayList<>();
+
+        for (RDFAtom atom : atoms) {
+            Iterator<Substitution> atomSubstitutions = match(atom);
+            Set<Term> currentSet = new HashSet<>();
+
+            while (atomSubstitutions.hasNext()) {
+                Substitution subst = atomSubstitutions.next();
+                Map<Variable, Term> bindings = subst.toMap();
+                Term boundTerm = bindings.get(centralVar);
+                if (boundTerm != null) {
+                    currentSet.add(boundTerm);
+                }
+            }
+
+            // Si un triplet ne retourne aucune substitution, la requête ne peut pas être satisfaite
+            if (currentSet.isEmpty()) {
+                return Collections.emptyIterator();
+            }
+
+            centralVarValueSets.add(currentSet);
+        }
+
+        // Trouver l'intersection de toutes les valeurs possibles de la variable centrale
+        Set<Term> intersection = new HashSet<>(centralVarValueSets.get(0));
+        for (int i = 1; i < centralVarValueSets.size(); i++) {
+            intersection.retainAll(centralVarValueSets.get(i));
+            if (intersection.isEmpty()) {
+                return Collections.emptyIterator();
+            }
+        }
+        
+        List<Substitution> results = new ArrayList<>();
+        for (Term term : intersection) {
+            SubstitutionImpl subst = new SubstitutionImpl();
+            subst.add(centralVar, term);
+            results.add(subst);
+        }
+
+        return results.iterator();
     }
+
 
     @Override
     public Collection<Atom> getAtoms() {
@@ -337,3 +382,4 @@ public class RDFHexaStore implements RDFStorage {
     }
 
 }
+
