@@ -25,6 +25,8 @@ public class RDFHexaStoreTest {
     private static final Literal<String> OBJECT_3 = SameObjectTermFactory.instance().createOrGetLiteral("object3");
     private static final Variable VAR_X = SameObjectTermFactory.instance().createOrGetVariable("?x");
     private static final Variable VAR_Y = SameObjectTermFactory.instance().createOrGetVariable("?y");
+    private static final Variable VAR_Z = SameObjectTermFactory.instance().createOrGetVariable("?z");
+
 
 
     @Test
@@ -128,6 +130,7 @@ public class RDFHexaStoreTest {
 	    RDFAtom matchingAtom6 = new RDFAtom(VAR_X, VAR_Y, OBJECT_1);
 	    RDFAtom matchingAtom7 = new RDFAtom(VAR_X, PREDICATE_1, VAR_Y);        
 
+	    
 	    // Cas 1: (?x = object1)
 	    Iterator<Substitution> matchedAtoms1 = store.match(matchingAtom1);
 	    List<Substitution> matchedList1 = new ArrayList<>();
@@ -196,6 +199,124 @@ public class RDFHexaStoreTest {
 	    eightResult.add(VAR_Y, OBJECT_1);
 	    assertTrue(matchedList7.contains(seventhResult), "Missing substitution: " + seventhResult);
 	    assertTrue(matchedList7.contains(eightResult), "Missing substitution: " + eightResult);
+	    
+	    //Cas 8:le sujet est null
+	    
+	    RDFAtom matchingAtomSubjectUnknown = new RDFAtom(
+	            SameObjectTermFactory.instance().createOrGetLiteral("unknown_subject"), // Sujet inconnu
+	            PREDICATE_1,
+	            OBJECT_1
+	    );
+	    Iterator<Substitution> matchedAtomsSubject = store.match(matchingAtomSubjectUnknown);
+	    List<Substitution> matchedListSubject = new ArrayList<>();
+	    matchedAtomsSubject.forEachRemaining(matchedListSubject::add);
+	    assertTrue(matchedListSubject.isEmpty(), "Aucune correspondance trouvée pour un sujet inconnu.");
+
+	    //Cas 9:Le prédicat est null
+	    RDFAtom matchingAtomPredicateUnknown = new RDFAtom(
+	            SUBJECT_1,
+	            SameObjectTermFactory.instance().createOrGetLiteral("unknown_predicate"), // Prédicat inconnu
+	            OBJECT_1
+	    );
+	    Iterator<Substitution> matchedAtomsPredicate = store.match(matchingAtomPredicateUnknown);
+	    List<Substitution> matchedListPredicate = new ArrayList<>();
+	    matchedAtomsPredicate.forEachRemaining(matchedListPredicate::add);
+	    assertTrue(matchedListPredicate.isEmpty(), "Aucune correspondance trouvée pour un prédicat inconnu.");
+
+	    //Cas 10: où l'objet est null
+	    RDFAtom matchingAtomObjectUnknown = new RDFAtom(
+	            SUBJECT_1,
+	            VAR_X,
+	            SameObjectTermFactory.instance().createOrGetLiteral("unknown_object") // Objet inconnu
+	    );
+	    Iterator<Substitution> matchedAtomsObject = store.match(matchingAtomObjectUnknown);
+	    List<Substitution> matchedListObject = new ArrayList<>();
+	    matchedAtomsObject.forEachRemaining(matchedListObject::add);
+	    assertTrue(matchedListObject.isEmpty(), "Aucune correspondance trouvée pour un objet inconnu.");
+
+	    //Cas 11: Sujet varivale et predicat unknow
+
+	    RDFAtom matchingAtomPredicateUnknown2 = new RDFAtom(
+	            SUBJECT_1,
+	            SameObjectTermFactory.instance().createOrGetLiteral("unknown_object"),
+	            VAR_X // Objet inconnu
+	    );
+	    Iterator<Substitution> matchedAtomsPredicate2 = store.match(matchingAtomPredicateUnknown2);
+	    List<Substitution> matchedListPredicate2 = new ArrayList<>();
+	    matchedAtomsPredicate2.forEachRemaining(matchedListPredicate2::add);
+	    assertTrue(matchedListPredicate2.isEmpty(), "Aucune correspondance trouvée pour un objet inconnu.");
+
+	 
+	    //Cas 12: Sujet varivale et object unknow
+	    RDFAtom matchingAtomObjectUnknown2 = new RDFAtom(
+	            VAR_X,
+	            PREDICATE_1,
+	            SameObjectTermFactory.instance().createOrGetLiteral("unknown_object") // Objet inconnu
+	    );
+	    Iterator<Substitution> matchedAtomsObject2 = store.match(matchingAtomObjectUnknown2);
+	    List<Substitution> matchedListObject2 = new ArrayList<>();
+	    matchedAtomsObject2.forEachRemaining(matchedListObject2::add);
+	    assertTrue(matchedListObject2.isEmpty(), "Aucune correspondance trouvée pour un objet inconnu.");
+
+	    
+	    //Cas 13: Var constnull Var
+	    RDFAtom matchingAtomPredicateUnknown3 = new RDFAtom(
+	            VAR_X,
+	            SameObjectTermFactory.instance().createOrGetLiteral("unknown_object") ,// Objet iconnu
+	            VAR_Y
+	    );
+	    
+	    Iterator<Substitution> matchedAtomsPredicate3 = store.match(matchingAtomPredicateUnknown3);
+	    List<Substitution> matchedListPredicate3 = new ArrayList<>();
+	    matchedAtomsPredicate3.forEachRemaining(matchedListPredicate3::add);
+	    assertTrue(matchedListPredicate3.isEmpty(), "Aucune correspondance trouvée pour un objet inconnu.");
+	    
+
+	    //Cas 13: Var var object unknow
+	    RDFAtom matchingAtomObjectUnknown3 = new RDFAtom(
+	            VAR_X,
+	            VAR_Y,
+	            SameObjectTermFactory.instance().createOrGetLiteral("unknown_object") // Objet inconnu
+	    );
+	    Iterator<Substitution> matchedAtomsObject3 = store.match(matchingAtomObjectUnknown3);
+	    List<Substitution> matchedListObject3 = new ArrayList<>();
+	    matchedAtomsObject3.forEachRemaining(matchedListObject3::add);
+	    assertTrue(matchedListObject3.isEmpty(), "Aucune correspondance trouvée pour un objet inconnu.");
+
+	    
+      //Cas 14:const var var
+	    
+	    RDFAtom matchingAtomSubjectUnknown2 = new RDFAtom(
+	            SameObjectTermFactory.instance().createOrGetLiteral("unknown_subject"), // Sujet inconnu
+	            VAR_X,
+	            VAR_Y
+	    );
+	    Iterator<Substitution> matchedAtomsSubject2 = store.match(matchingAtomSubjectUnknown2);
+	    List<Substitution> matchedListSubject2 = new ArrayList<>();
+	    matchedAtomsSubject2.forEachRemaining(matchedListSubject2::add);
+	    assertTrue(matchedListSubject2.isEmpty(), "Aucune correspondance trouvée pour un sujet inconnu.");
+
+	  //Cas 15
+	    RDFAtom queryAtom = new RDFAtom(VAR_X, VAR_Y, VAR_Z); // (?x, ?y, ?z)
+
+	    // Appeler la méthode match()
+	    Iterator<Substitution> matchedAtoms = store.match(queryAtom);
+	    List<Substitution> matchedList = new ArrayList<>();
+	    matchedAtoms.forEachRemaining(matchedList::add);
+
+	    // Vérifier le nombre de correspondances
+	    assertEquals(3, matchedList.size(), "Le nombre de correspondances devrait être égal au nombre de triplets dans le store.");
+
+	    // Définir les substitutions attendues
+	    SubstitutionImpl expectedSubstitution1 = new SubstitutionImpl();
+	    expectedSubstitution1.add(VAR_X, SUBJECT_1);
+	    expectedSubstitution1.add(VAR_Y, PREDICATE_1);
+	    expectedSubstitution1.add(VAR_Z, OBJECT_1);
+
+
+	    // Vérifier que les substitutions attendues sont présentes
+	    assertTrue(matchedList.contains(expectedSubstitution1), "La substitution pour (subject1, predicate1, object1) est manquante.");
+	  
 	}
 
 
